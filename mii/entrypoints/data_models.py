@@ -9,7 +9,8 @@ from typing import Literal, Optional, List, Dict, Any, Union
 import time
 
 import shortuuid
-from pydantic import BaseModel, BaseSettings, Field
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings
 
 
 class ErrorResponse(BaseModel):
@@ -172,7 +173,6 @@ class CompletionRequest(BaseModel):
     user: Optional[str] = None
     use_beam_search: Optional[bool] = False
     best_of: Optional[int] = None
-
 
 class CompletionResponseChoice(BaseModel):
     index: int
