@@ -45,7 +45,7 @@ async def generate(request: CompletionRequest) -> Response:
         request.prompt = [request.prompt]
 
     # Set up the generation arguments
-    generate_args = {"ignore_eos": False, "do_sample": True, "return_full_text": False}
+    generate_args = {"ignore_eos": True, "do_sample": False, "return_full_text": False}
 
     # Set optional generation arguments
     if request.max_length is not None:
@@ -81,18 +81,18 @@ async def generate(request: CompletionRequest) -> Response:
 
     # Streaming case
     if request.stream:
-        return JSONResponse({"error": "Streaming is not yet supported."},
-                            status_code=400)
-        # async def StreamResults() -> AsyncGenerator[bytes, None]:
-        #     # Send an empty chunk to start the stream and prevent timeout
-        #     yield ""
-        #     async for response_chunk in stub.GeneratorReplyStream(requestData):
-        #         # Send the response chunk
-        #         responses = [obj.response for obj in response_chunk.response]
-        #         dataOut = {"text": responses}
-        #         yield f"data: {json.dumps(dataOut)}\n\n"
-        #     yield f"data: [DONE]\n\n"
-        # return StreamingResponse(StreamResults(), media_type="text/event-stream")
+        from typing import AsyncGenerator
+        from fastapi.responses import StreamingResponse
+        async def StreamResults() -> AsyncGenerator[str, None]:
+            # Send an empty chunk to start the stream and prevent timeout
+            yield ""
+            async for response_chunk in stub.GeneratorReplyStream(requestData):
+                # Send the response chunk
+                responses = [obj.response for obj in response_chunk.response]
+                dataOut = {"text": responses}
+                yield f"data: {json.dumps(dataOut)}\n\n"
+            yield f"data: [DONE]\n\n"
+        return StreamingResponse(StreamResults(), media_type="text/event-stream")
 
     # Non-streaming case
     responseData = await stub.GeneratorReply(requestData)
@@ -186,6 +186,7 @@ if __name__ == "__main__":
         # Set the load balancer
         load_balancer = args.load_balancer
     else:
+        print(args)
         # Initialize the DeepSpeed-MII instance
         mii.serve(args.model,
                   deployment_name=args.deployment_name,
